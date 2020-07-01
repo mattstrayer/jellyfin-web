@@ -34,7 +34,7 @@ define(['loading', 'globalize', 'events', 'viewManager', 'skinManager', 'backdro
         switch (result.State) {
             case 'SignedIn':
                 loading.hide();
-                skinManager.loadUserSkin();
+                Emby.Page.goHome();
                 break;
             case 'ServerSignIn':
                 result.ApiClient.getPublicUsers().then(function (users) {
@@ -147,26 +147,19 @@ define(['loading', 'globalize', 'events', 'viewManager', 'skinManager', 'backdro
             if (typeof route.path === 'string') {
                 loadContentUrl(ctx, next, route, currentRequest);
             } else {
-                // ? TODO
                 next();
             }
         };
 
         if (!isBackNav) {
-            // Don't force a new view for home due to the back menu
-            //if (route.type !== 'home') {
             onNewViewNeeded();
             return;
-            //}
         }
         viewManager.tryRestoreView(currentRequest, function () {
-
-            // done
             currentRouteInfo = {
                 route: route,
                 path: ctx.path
             };
-
         }).catch(function (result) {
             if (!result || !result.cancelled) {
                 onNewViewNeeded();
@@ -333,13 +326,9 @@ define(['loading', 'globalize', 'events', 'viewManager', 'skinManager', 'backdro
 
         connectionManager.connect({
             enableAutoLogin: appSettings.enableAutoLogin()
-
         }).then(function (result) {
-
             firstConnectionResult = result;
-
             options = options || {};
-
             page({
                 click: options.click !== false,
                 hashbang: options.hashbang !== false,
@@ -351,11 +340,6 @@ define(['loading', 'globalize', 'events', 'viewManager', 'skinManager', 'backdro
     }
 
     function enableHistory() {
-
-        //if (browser.edgeUwp) {
-        //    return false;
-        //}
-
         // shows status bar on navigation
         if (browser.xboxOne) {
             return false;
@@ -415,7 +399,7 @@ define(['loading', 'globalize', 'events', 'viewManager', 'skinManager', 'backdro
 
             if (route.isDefaultRoute) {
                 console.debug('appRouter - loading skin home page');
-                loadUserSkinWithOptions(ctx);
+                Emby.Page.goHome();
                 return;
             } else if (route.roles) {
 
@@ -430,15 +414,6 @@ define(['loading', 'globalize', 'events', 'viewManager', 'skinManager', 'backdro
 
         console.debug('appRouter - proceeding to ' + pathname);
         callback();
-    }
-
-    function loadUserSkinWithOptions(ctx) {
-        require(['queryString'], function (queryString) {
-            var params = queryString.parse(ctx.querystring);
-            skinManager.loadUserSkin({
-                start: params.start
-            });
-        });
     }
 
     function validateRoles(apiClient, roles) {
@@ -677,7 +652,6 @@ define(['loading', 'globalize', 'events', 'viewManager', 'skinManager', 'backdro
     function pushState(state, title, url) {
         state.navigate = false;
         history.pushState(state, title, url);
-
     }
 
     function setBaseRoute() {

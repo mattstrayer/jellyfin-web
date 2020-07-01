@@ -481,36 +481,30 @@ var AppInfo = {};
 
     function loadPlugins(appHost, browser, shell) {
         console.debug('loading installed plugins');
-        var list = [
-            'plugins/playAccessValidation/plugin',
-            'plugins/experimentalWarnings/plugin',
-            'plugins/htmlAudioPlayer/plugin',
-            'plugins/htmlVideoPlayer/plugin',
-            'plugins/photoPlayer/plugin',
-            'plugins/bookPlayer/plugin',
-            'plugins/youtubePlayer/plugin',
-            'plugins/backdropScreensaver/plugin',
-            'plugins/logoScreensaver/plugin'
-        ];
-
-        if (appHost.supports('remotecontrol')) {
-            list.push('plugins/sessionPlayer/plugin');
-
-            if (browser.chrome || browser.opera) {
-                list.push('plugins/chromecastPlayer/plugin');
-            }
-        }
-
-        if (window.NativeShell) {
-            list = list.concat(window.NativeShell.getPlugins());
-        }
-
         return new Promise(function (resolve, reject) {
-            Promise.all(list.map(loadPlugin)).then(function () {
-                require(['packageManager'], function (packageManager) {
-                    packageManager.init().then(resolve, reject);
+            require(['webSettings'], function (webSettings) {
+                webSettings.getPlugins().then(function (list) {
+                    // these two plugins are dependent on features
+                    if (!appHost.supports('remotecontrol')) {
+                        list.splice(list.indexOf('sessionPlayer'), 1);
+
+                        if (!browser.chrome && !browser.opera) {
+                            list.splice(list.indexOf('chromecastPlayer', 1));
+                        }
+                    }
+
+                    // add any native plugins
+                    if (window.NativeShell) {
+                        list = list.concat(window.NativeShell.getPlugins());
+                    }
+
+                    Promise.all(list.map(loadPlugin)).then(function () {
+                        require(['packageManager'], function (packageManager) {
+                            packageManager.init().then(resolve, reject);
+                        });
+                    }, reject);
                 });
-            }, reject);
+            });
         });
     }
 
@@ -536,7 +530,7 @@ var AppInfo = {};
 
             window.Emby.Page = appRouter;
 
-            require(['emby-button', 'scripts/themeLoader', 'libraryMenu', 'scripts/routes'], function () {
+            require(['emby-button', 'scripts/autoThemes', 'libraryMenu', 'scripts/routes'], function () {
                 Emby.Page.start({
                     click: false,
                     hashbang: true
@@ -658,7 +652,6 @@ var AppInfo = {};
             pluginManager: componentsPath + '/pluginManager',
             packageManager: componentsPath + '/packageManager',
             screensaverManager: componentsPath + '/screensavermanager',
-            chromecastHelper: 'plugins/chromecastPlayer/chromecastHelpers'
         };
 
         requirejs.onError = onRequireJsError;
@@ -859,7 +852,7 @@ var AppInfo = {};
         define('viewContainer', [componentsPath + '/viewContainer'], returnFirstDependency);
         define('dialogHelper', [componentsPath + '/dialogHelper/dialogHelper'], returnFirstDependency);
         define('serverNotifications', [scriptsPath + '/serverNotifications'], returnFirstDependency);
-        define('skinManager', [componentsPath + '/skinManager'], returnFirstDependency);
+        define('skinManager', [scriptsPath + '/themeManager'], returnFirstDependency);
         define('keyboardnavigation', [scriptsPath + '/keyboardNavigation'], returnFirstDependency);
         define('mouseManager', [scriptsPath + '/mouseManager'], returnFirstDependency);
         define('scrollManager', [componentsPath + '/scrollManager'], returnFirstDependency);

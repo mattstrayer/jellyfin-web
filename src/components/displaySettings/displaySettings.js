@@ -1,17 +1,12 @@
 define(['require', 'browser', 'layoutManager', 'appSettings', 'pluginManager', 'apphost', 'focusManager', 'datetime', 'globalize', 'loading', 'connectionManager', 'skinManager', 'dom', 'events', 'emby-select', 'emby-checkbox', 'emby-button'], function (require, browser, layoutManager, appSettings, pluginManager, appHost, focusManager, datetime, globalize, loading, connectionManager, skinManager, dom, events) {
     'use strict';
 
-    function fillThemes(select, isDashboard) {
-        select.innerHTML = skinManager.getThemes().map(function (t) {
-            var value = t.id;
-            if (t.isDefault && !isDashboard) {
-                value = '';
-            } else if (t.isDefaultServerDashboard && isDashboard) {
-                value = '';
-            }
-
-            return '<option value="' + value + '">' + t.name + '</option>';
-        }).join('');
+    function fillThemes(select) {
+        skinManager.getThemes().then(function (themes) {
+            select.innerHTML = themes.map(function (t) {
+                return '<option value="' + t.id + '">' + t.name + '</option>';
+            }).join('');
+        });
     }
 
     function loadScreensavers(context, userSettings) {
@@ -39,59 +34,6 @@ define(['require', 'browser', 'layoutManager', 'appSettings', 'pluginManager', '
         }
     }
 
-    function loadSoundEffects(context, userSettings) {
-
-        var selectSoundEffects = context.querySelector('.selectSoundEffects');
-        var options = pluginManager.ofType('soundeffects').map(function (plugin) {
-            return {
-                name: plugin.name,
-                value: plugin.id
-            };
-        });
-
-        options.unshift({
-            name: globalize.translate('None'),
-            value: 'none'
-        });
-
-        selectSoundEffects.innerHTML = options.map(function (o) {
-            return '<option value="' + o.value + '">' + o.name + '</option>';
-        }).join('');
-        selectSoundEffects.value = userSettings.soundEffects();
-
-        if (!selectSoundEffects.value) {
-            // TODO: set the default instead of none
-            selectSoundEffects.value = 'none';
-        }
-    }
-
-    function loadSkins(context, userSettings) {
-
-        var selectSkin = context.querySelector('.selectSkin');
-
-        var options = pluginManager.ofType('skin').map(function (plugin) {
-            return {
-                name: plugin.name,
-                value: plugin.id
-            };
-        });
-
-        selectSkin.innerHTML = options.map(function (o) {
-            return '<option value="' + o.value + '">' + o.name + '</option>';
-        }).join('');
-        selectSkin.value = userSettings.skin();
-
-        if (!selectSkin.value && options.length) {
-            selectSkin.value = options[0].value;
-        }
-
-        if (options.length > 1 && appHost.supports('skins')) {
-            context.querySelector('.selectSkinContainer').classList.remove('hide');
-        } else {
-            context.querySelector('.selectSkinContainer').classList.add('hide');
-        }
-    }
-
     function showOrHideMissingEpisodesField(context, user, apiClient) {
 
         if (browser.tizen || browser.web0s) {
@@ -106,12 +48,6 @@ define(['require', 'browser', 'layoutManager', 'appSettings', 'pluginManager', '
 
         var loggedInUserId = apiClient.getCurrentUserId();
         var userId = user.Id;
-
-        if (user.Policy.IsAdministrator) {
-            context.querySelector('.selectDashboardThemeContainer').classList.remove('hide');
-        } else {
-            context.querySelector('.selectDashboardThemeContainer').classList.add('hide');
-        }
 
         if (appHost.supports('displaylanguage')) {
             context.querySelector('.languageSection').classList.remove('hide');
@@ -129,18 +65,6 @@ define(['require', 'browser', 'layoutManager', 'appSettings', 'pluginManager', '
             context.querySelector('.learnHowToContributeContainer').classList.remove('hide');
         } else {
             context.querySelector('.learnHowToContributeContainer').classList.add('hide');
-        }
-
-        if (appHost.supports('runatstartup')) {
-            context.querySelector('.fldAutorun').classList.remove('hide');
-        } else {
-            context.querySelector('.fldAutorun').classList.add('hide');
-        }
-
-        if (appHost.supports('soundeffects')) {
-            context.querySelector('.fldSoundEffects').classList.remove('hide');
-        } else {
-            context.querySelector('.fldSoundEffects').classList.add('hide');
         }
 
         if (appHost.supports('screensaver')) {
@@ -165,16 +89,10 @@ define(['require', 'browser', 'layoutManager', 'appSettings', 'pluginManager', '
             context.querySelector('.fldThemeVideo').classList.add('hide');
         }
 
-        context.querySelector('.chkRunAtStartup').checked = appSettings.runAtStartup();
-
         var selectTheme = context.querySelector('#selectTheme');
-        var selectDashboardTheme = context.querySelector('#selectDashboardTheme');
 
         fillThemes(selectTheme);
-        fillThemes(selectDashboardTheme, true);
         loadScreensavers(context, userSettings);
-        loadSoundEffects(context, userSettings);
-        loadSkins(context, userSettings);
 
         context.querySelector('.chkDisplayMissingEpisodes').checked = user.Configuration.DisplayMissingEpisodes || false;
 
@@ -190,8 +108,13 @@ define(['require', 'browser', 'layoutManager', 'appSettings', 'pluginManager', '
 
         context.querySelector('#txtLibraryPageSize').value = userSettings.libraryPageSize();
 
-        selectDashboardTheme.value = userSettings.dashboardTheme() || '';
-        selectTheme.value = userSettings.theme() || '';
+        skinManager.getThemes().then(themes => {
+            var defaultTheme = themes.find(theme => {
+                return theme.default;
+            });
+
+            selectTheme.value = userSettings.theme() || defaultTheme.id;
+        });
 
         context.querySelector('.selectLayout').value = layoutManager.getSavedLayout() || '';
 
@@ -201,9 +124,6 @@ define(['require', 'browser', 'layoutManager', 'appSettings', 'pluginManager', '
     }
 
     function saveUser(context, user, userSettingsInstance, apiClient) {
-
-        appSettings.runAtStartup(context.querySelector('.chkRunAtStartup').checked);
-
         user.Configuration.DisplayMissingEpisodes = context.querySelector('.chkDisplayMissingEpisodes').checked;
 
         if (appHost.supports('displaylanguage')) {
@@ -214,14 +134,10 @@ define(['require', 'browser', 'layoutManager', 'appSettings', 'pluginManager', '
 
         userSettingsInstance.enableThemeSongs(context.querySelector('#chkThemeSong').checked);
         userSettingsInstance.enableThemeVideos(context.querySelector('#chkThemeVideo').checked);
-        userSettingsInstance.dashboardTheme(context.querySelector('#selectDashboardTheme').value);
         userSettingsInstance.theme(context.querySelector('#selectTheme').value);
-        userSettingsInstance.soundEffects(context.querySelector('.selectSoundEffects').value);
         userSettingsInstance.screensaver(context.querySelector('.selectScreensaver').value);
 
         userSettingsInstance.libraryPageSize(context.querySelector('#txtLibraryPageSize').value);
-
-        userSettingsInstance.skin(context.querySelector('.selectSkin').value);
 
         userSettingsInstance.enableFastFadein(context.querySelector('#chkFadein').checked);
         userSettingsInstance.enableBlurhash(context.querySelector('#chkBlurhash').checked);
