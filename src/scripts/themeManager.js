@@ -1,5 +1,3 @@
-import appHost from 'apphost';
-import * as userSettings from 'userSettings';
 import * as webSettings from 'webSettings';
 
 var themeStyleElement;
