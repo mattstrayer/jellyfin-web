@@ -22,7 +22,7 @@ export function getMultiServer() {
     return getConfig().then(config => {
         return config.multiserver;
     }).catch(error => {
-        console.log('cannot get web config: ', error);
+        console.log('cannot get web config:', error);
         return false;
     });
 }
@@ -31,7 +31,7 @@ export function getThemes() {
     return getConfig().then(config => {
         return config.themes;
     }).catch(error => {
-        console.log('cannot get web config: ', error);
+        console.log('cannot get web config:', error);
         return [];
     });
 }
@@ -40,7 +40,7 @@ export function getPlugins() {
     return getConfig().then(config => {
         return config.plugins;
     }).catch(error => {
-        console.log('cannot get web config: ', error);
+        console.log('cannot get web config:', error);
         return [];
     });
 }
