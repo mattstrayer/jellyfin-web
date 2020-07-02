@@ -651,7 +651,7 @@ var AppInfo = {};
             nowPlayingHelper: componentsPath + '/playback/nowplayinghelper',
             pluginManager: componentsPath + '/pluginManager',
             packageManager: componentsPath + '/packageManager',
-            screensaverManager: componentsPath + '/screensavermanager',
+            screensaverManager: componentsPath + '/screensavermanager'
         };
 
         requirejs.onError = onRequireJsError;
