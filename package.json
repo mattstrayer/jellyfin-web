@@ -96,6 +96,8 @@
           "src/components/alphaPicker/alphaPicker.js",
           "src/components/appFooter/appFooter.js",
           "src/components/autoFocuser.js",
+          "scr/libraries/scroller.js",
+          "src/components/focusManager.js",
           "src/components/backdrop/backdrop.js",
           "src/components/cardbuilder/cardBuilder.js",
           "src/components/cardbuilder/chaptercardbuilder.js",
